@@ -1,0 +1,2 @@
+#!/bin/bash
+denon run --unstable --allow-net app.ts

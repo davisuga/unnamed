@@ -7,6 +7,7 @@ import {
   ReqMap,
   FancyReq,
 } from "./types.ts";
+import { parseQuery } from "./utils.js";
 
 const defaultResponse = () =>
   Promise.resolve(new Response(new TextEncoder().encode("It's working!")));
@@ -17,17 +18,22 @@ const defaultRouteMap: RouteMap = {
   },
 };
 
+const fancifyRequest = (req: Request): FancyReq => {
+  const { search } = new URL(req.url);
+  return Object.assign(req, { query: parseQuery(search) });
+};
+
 /**
  * Creates a controller from a function that returns serializable stuff
  * @param reqHandler A function that returns what will be transformed into a response and sent to the user
  */
-//@ts-ignore TS fault of flow analysis
+//@ts-expect-error TS fault of flow analysis
 const toController: ToController =
-  (reqHandler?: RequestHandler) => async (req: FancyReq) => {
+  (reqHandler?: RequestHandler) => async (req: Request) => {
     if (!reqHandler) {
       return defaultResponse();
     }
-    const result = await reqHandler(req);
+    const result = await reqHandler(fancifyRequest(req));
     // deno-lint-ignore no-prototype-builtins We need to verify if its a response
     if (Response.prototype.isPrototypeOf(result)) {
       return result;
@@ -35,7 +41,7 @@ const toController: ToController =
     if (typeof result === "number" || typeof result === "boolean") {
       return new Response(result.toString());
     }
-    //@ts-ignore TS fault of flow analysis
+    //@ts-expect-error TS fault of flow analysis
     return new Response(result);
   };
 

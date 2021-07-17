@@ -12,6 +12,7 @@
     "deno.lint": true,
     "deno.unstable": true,
     "cSpell.words": [
-        "Deno"
+        "Deno",
+        "Fancify"
     ]
 }

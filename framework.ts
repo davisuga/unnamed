@@ -1,11 +1,12 @@
 import {
-  RequestHandler,
-  RouteMap,
-  UnnamedAPI,
   Controller,
+  FancyReq,
   HttpMethod,
   ReqMap,
-  FancyReq,
+  RequestHandler,
+  RouteMap,
+  ToController,
+  UnnamedAPI,
 } from "./types.ts";
 import { parseQuery } from "./utils.js";
 
@@ -24,16 +25,19 @@ const fancifyRequest = (req: Request): FancyReq => {
 };
 
 /**
- * Creates a controller from a function that returns serializable stuff
+ * Creates a controller from any function that returns serializable stuff
  * @param reqHandler A function that returns what will be transformed into a response and sent to the user
  */
-//@ts-expect-error TS fault of flow analysis
-const toController: ToController =
-  (reqHandler?: RequestHandler) => async (req: Request) => {
+// @ts-expect-error It will return a Response anyway
+const toController: ToController = (reqHandler?: RequestHandler) =>
+  async (req: Request) => {
     if (!reqHandler) {
       return defaultResponse();
     }
     const result = await reqHandler(fancifyRequest(req));
+    if (!result) {
+      return defaultResponse();
+    }
     // deno-lint-ignore no-prototype-builtins We need to verify if its a response
     if (Response.prototype.isPrototypeOf(result)) {
       return result;
@@ -41,14 +45,16 @@ const toController: ToController =
     if (typeof result === "number" || typeof result === "boolean") {
       return new Response(result.toString());
     }
-    //@ts-expect-error TS fault of flow analysis
-    return new Response(result);
+    return new Response(JSON.stringify(result), {status: 200, headers: { "Content-Type": "application/json" }});
   };
 
 type App = () => UnnamedAPI;
 
-const buildHandler =
-  (routeMap: RouteMap): Controller =>
+const matchRoute = (pathname: keyof ReqMap, reqMap?: ReqMap) => {
+  return reqMap ? reqMap[pathname] : defaultResponse;
+};
+
+const buildHandler = (routeMap: RouteMap): Controller =>
   (req: Request) => {
     const method = req.method as HttpMethod;
     const { pathname } = new URL(req.url);
@@ -56,20 +62,23 @@ const buildHandler =
     console.log("got: ", { method, pathname, routeMap });
 
     const requestMap = routeMap[method];
-    const reqHandler = requestMap ? requestMap[pathname] : defaultResponse;
+    const reqHandler = matchRoute(pathname, requestMap);
 
     const controller = toController(reqHandler);
     return controller ? controller(req) : defaultResponse();
   };
 
+
+
 const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
   const handler = buildHandler(currentRouteMap);
 
-  const buildMethodHandler = (method: HttpMethod) => (reMap: ReqMap) =>
-    App({
-      ...currentRouteMap,
-      [method]: { ...currentRouteMap[method], ...reMap },
-    });
+  const buildMethodHandler = (method: HttpMethod) =>
+    (reMap: ReqMap) =>
+      App({
+        ...currentRouteMap,
+        [method]: { ...currentRouteMap[method], ...reMap },
+      });
 
   const init = async (options: Deno.ListenOptions = { port: 4500 }) => {
     const listener = Deno.listen(options);
@@ -77,7 +86,7 @@ const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
       for await (const { respondWith, request } of Deno.serveHttp(conn)) {
         const r = await handler(request);
         console.log("handled ", r);
-        respondWith(r);
+        await respondWith(r); 
       }
     }
   };

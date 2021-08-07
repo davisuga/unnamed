@@ -142,8 +142,7 @@ export function pipeWith<A, B, C, D, E, F, G, H, I, J>(
 ): J;
 export function pipeWith(value: unknown, ...fns: UnknownFunction[]): unknown {
     return pipe(
-        // Our overloads do not currently support arrays
-        // @ts-ignore
+        // @ts-ignore Our overloads do not currently support arrays
         ...fns,
     )(value);
 }

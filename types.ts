@@ -3,6 +3,7 @@ export type CanBeEncoded =
   | number
   | boolean
   | void
+  | unknown[]
   | Record<string | number, unknown>;
 
 export type FancyReq = Request & {

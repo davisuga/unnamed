@@ -36,7 +36,7 @@ const toController: ToController = (reqHandler?: RequestHandler) =>
     }
     const result = await reqHandler(fancifyRequest(req));
     if (!result) {
-      return defaultResponse();
+      return new Response();
     }
     // deno-lint-ignore no-prototype-builtins We need to verify if its a response
     if (Response.prototype.isPrototypeOf(result)) {
@@ -45,7 +45,10 @@ const toController: ToController = (reqHandler?: RequestHandler) =>
     if (typeof result === "number" || typeof result === "boolean") {
       return new Response(result.toString());
     }
-    return new Response(JSON.stringify(result), {status: 200, headers: { "Content-Type": "application/json" }});
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   };
 
 type App = () => UnnamedAPI;
@@ -68,8 +71,6 @@ const buildHandler = (routeMap: RouteMap): Controller =>
     return controller ? controller(req) : defaultResponse();
   };
 
-
-
 const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
   const handler = buildHandler(currentRouteMap);
 
@@ -85,8 +86,7 @@ const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
     for await (const conn of listener) {
       for await (const { respondWith, request } of Deno.serveHttp(conn)) {
         const r = await handler(request);
-        console.log("handled ", r);
-        await respondWith(r); 
+        await respondWith(r);
       }
     }
   };

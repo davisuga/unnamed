@@ -1,14 +1,3 @@
-# Unnamed web framework
-
-## Disclaimer
-
-This is just a RUSHED layer over Deno's native HTTP api. \
-It has no support for middlewares. \
-It's obviously not ready for production, but is relatively easy to extend.
-
-## Basic usage
-
-```typescript
 import app from "https://deno.land/x/unnamed/mod.ts";
 
 app
@@ -21,4 +10,3 @@ app
   })
   //Works with onDelete and onPut too
   .init();
-```

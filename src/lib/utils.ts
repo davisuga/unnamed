@@ -23,12 +23,6 @@ export const memoize = <T extends (args: any) => any, F extends Parameters<T>>(
   };
 };
 
-/**
- * Parses query parameters from a string
- * Adapted from https://stackoverflow.com/a/7826782
- * @param {string} search
- * @returns {Object.<string, string>}
- */
 export function parseQuery(search: string) {
   const args = search.substring(1).split("&");
   const argsParsed = {};

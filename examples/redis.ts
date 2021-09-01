@@ -72,6 +72,7 @@ app()
     "/ssas/:id/:name": ({ params }) => params,
     "/params": showParams,
     "/todos": getTodos,
+    "/double/:number": ({ params }) => Number(params?.number) * 2,
   })
   .onPost({
     "/todos/new": postTodo,

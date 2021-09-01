@@ -90,7 +90,6 @@ const buildHandler =
 
     console.log("got: ", { method, pathname, routeMap });
     const requestMap = routeMap[method];
-
     const reqHandler = matchRoute(pathname, requestMap);
     const controller = toController(reqHandler);
     return controller ? controller(req) : defaultResponse();

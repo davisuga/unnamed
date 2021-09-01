@@ -8,13 +8,12 @@ import {
   ToController,
   UnnamedAPI,
   ReqWithParams,
-  ValidResponse,
   FancyReq,
 } from "./types.ts";
-import { parseQuery } from "./utils.js";
+
 import { parse } from "https://esm.sh/teki";
 import { pathToRegexp } from "https://esm.sh/path-to-regexp";
-import { memoize } from "./lib/utils.ts";
+import { memoize, parseQuery } from "./lib/utils.ts";
 
 const defaultResponse = () =>
   Promise.resolve(new Response(new TextEncoder().encode("It's working!")));
@@ -132,3 +131,4 @@ const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
 };
 
 export default App;
+export * from "./types.ts";

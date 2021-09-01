@@ -1,7 +1,7 @@
-import app from "./framework.ts";
-import { FancyReq } from "./types.ts";
-import { pipe } from "./lib/pipe.ts";
-import { lazy } from "./lib/utils.ts";
+import app from "../src/index.ts";
+import { FancyReq } from "../src/types.ts";
+import { pipe } from "../src/lib/pipe.ts";
+import { lazy } from "../src/lib/utils.ts";
 import { connect } from "https://denopkg.com/keroxp/deno-redis/mod.ts";
 
 const redis = await connect({
@@ -77,5 +77,8 @@ app()
     "/todos/new": postTodo,
     "/posty": showMethod,
   })
-  .onDelete({ "/todos/:id": () => "DELETED" })
+  .onDelete({
+    "/todos/:id": ({ params }) =>
+      `Todo with id ${params?.id} was D E L E T E D`,
+  })
   .init();

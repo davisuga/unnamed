@@ -130,4 +130,3 @@ const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
 };
 
 export default App;
-export * from "./types.ts";

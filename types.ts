@@ -4,18 +4,28 @@ export type CanBeEncoded =
   | boolean
   | void
   | unknown[]
+  | null
   | Record<string | number, unknown>;
 
-export type FancyReq = Request & {
+export type ReqWithParams = Request & {
+  params: Record<string, string> | null;
+};
+
+export type ReqWithQuery = ReqWithParams & {
   query: Record<string, string>;
 };
 
+export type FancyReq = ReqWithQuery;
+
+export type ValidResponse =
+  | CanBeEncoded
+  | Response
+  | Promise<CanBeEncoded>
+  | Promise<Response>;
 /**
  * Is any function that receives a request and returns serializable stuff.
  */
-export type RequestHandler = (
-  req: FancyReq
-) => CanBeEncoded | Response | Promise<CanBeEncoded> | Promise<Response>;
+export type RequestHandler = (req: FancyReq) => ValidResponse;
 
 export type Controller = (req: Request) => Response | Promise<Response>;
 

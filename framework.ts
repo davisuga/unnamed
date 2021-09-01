@@ -1,14 +1,20 @@
 import {
   Controller,
-  FancyReq,
+  ReqWithQuery,
   HttpMethod,
   ReqMap,
   RequestHandler,
   RouteMap,
   ToController,
   UnnamedAPI,
+  ReqWithParams,
+  ValidResponse,
+  FancyReq,
 } from "./types.ts";
 import { parseQuery } from "./utils.js";
+import { parse } from "https://esm.sh/teki";
+import { pathToRegexp } from "https://esm.sh/path-to-regexp";
+import { memoize } from "./lib/utils.ts";
 
 const defaultResponse = () =>
   Promise.resolve(new Response(new TextEncoder().encode("It's working!")));
@@ -19,7 +25,9 @@ const defaultRouteMap: RouteMap = {
   },
 };
 
-const fancifyRequest = (req: Request): FancyReq => {
+const addQueryParams = <T extends { url: string }>(
+  req: T
+): T & { query: Record<string, unknown> } => {
   const { search } = new URL(req.url);
   return Object.assign(req, { query: parseQuery(search) });
 };
@@ -29,16 +37,16 @@ const fancifyRequest = (req: Request): FancyReq => {
  * @param reqHandler A function that returns what will be transformed into a response and sent to the user
  */
 // @ts-expect-error It will return a Response anyway
-const toController: ToController = (reqHandler?: RequestHandler) =>
-  async (req: Request) => {
+const toController: ToController =
+  (reqHandler?: RequestHandler) => async (req: Request) => {
     if (!reqHandler) {
       return defaultResponse();
     }
-    const result = await reqHandler(fancifyRequest(req));
+    const result = await reqHandler(addQueryParams(req) as ReqWithQuery);
     if (!result) {
       return new Response();
     }
-    // deno-lint-ignore no-prototype-builtins We need to verify if its a response
+    // deno-lint-ignore no-prototype-builtins
     if (Response.prototype.isPrototypeOf(result)) {
       return result;
     }
@@ -53,20 +61,38 @@ const toController: ToController = (reqHandler?: RequestHandler) =>
 
 type App = () => UnnamedAPI;
 
-const matchRoute = (pathname: keyof ReqMap, reqMap?: ReqMap) => {
-  return reqMap ? reqMap[pathname] : defaultResponse;
-};
+const matchRoute = memoize(
+  (pathname: keyof ReqMap, reqMap?: ReqMap): RequestHandler => {
+    if (!reqMap) return defaultResponse;
 
-const buildHandler = (routeMap: RouteMap): Controller =>
+    const reqestMapEntry = Object.entries(reqMap).find(([path]) => {
+      return pathToRegexp(path).test(pathname.toString());
+    });
+
+    if (!reqestMapEntry) return () => defaultResponse();
+    const [path, handler] = reqestMapEntry;
+    const paramParser = parse(path.toString());
+    console.log({ url: pathname.toString() });
+
+    return (req: ReqWithParams) => {
+      return handler({
+        ...req,
+        params: paramParser(`http://localhost${pathname.toString()}`),
+      } as FancyReq);
+    };
+  }
+);
+
+const buildHandler =
+  (routeMap: RouteMap): Controller =>
   (req: Request) => {
     const method = req.method as HttpMethod;
     const { pathname } = new URL(req.url);
 
     console.log("got: ", { method, pathname, routeMap });
-
     const requestMap = routeMap[method];
-    const reqHandler = matchRoute(pathname, requestMap);
 
+    const reqHandler = matchRoute(pathname, requestMap);
     const controller = toController(reqHandler);
     return controller ? controller(req) : defaultResponse();
   };
@@ -74,12 +100,11 @@ const buildHandler = (routeMap: RouteMap): Controller =>
 const App = (currentRouteMap: RouteMap = defaultRouteMap) => {
   const handler = buildHandler(currentRouteMap);
 
-  const buildMethodHandler = (method: HttpMethod) =>
-    (reMap: ReqMap) =>
-      App({
-        ...currentRouteMap,
-        [method]: { ...currentRouteMap[method], ...reMap },
-      });
+  const buildMethodHandler = (method: HttpMethod) => (reMap: ReqMap) =>
+    App({
+      ...currentRouteMap,
+      [method]: { ...currentRouteMap[method], ...reMap },
+    });
 
   const init = async (options: Deno.ListenOptions = { port: 4500 }) => {
     const listener = Deno.listen(options);

@@ -9,9 +9,9 @@ It's obviously not ready for production, but is relatively easy to extend.
 ## Basic usage
 
 ```typescript
-import app from "https://deno.land/x/unnamed/mod.ts";
+import app from "https://deno.land/x/unnamed@0.1.2/mod.ts";
 
-app
+app()
   .onGet({
     "/hello": () => "Hello world",
     "/double/:number": ({ params }) => Number(params?.number) * 2,
